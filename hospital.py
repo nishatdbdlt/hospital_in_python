@@ -7,6 +7,7 @@ import random
 import string
 import hashlib
 import json
+import calendar
 
 try:
     from reportlab.lib.pagesizes import A4
@@ -319,20 +320,39 @@ def validate_time(value):
 # ─────────────────────────────────────────────
 #  THEME / COLORS
 # ─────────────────────────────────────────────
-BG       = "#0B1A2B"
-PANEL    = "#142850"
-CARD     = "#1B263B"
-ACCENT   = "#38B6FF"
-ACCENT2  = "#60E8E0"
-DANGER   = "#FF4C4C"
-WARNING  = "#FFC845"
-SUCCESS  = "#2ED47A"
-TEXT     = "#F0F7FF"
-SUBTEXT  = "#A9C6F5"
+BG       = "#F4F7FB"
+PANEL    = "#E4ECF8"
+CARD     = "#FFFFFF"
+ACCENT   = "#2D9CDB"
+ACCENT2  = "#56CCF2"
+DANGER   = "#EB5757"
+WARNING  = "#F2C94C"
+SUCCESS  = "#27AE60"
+TEXT     = "#2D3748"
+SUBTEXT  = "#556B8A"
 WHITE    = "#FFFFFF"
-PURPLE   = "#C56CFF"
-ORANGE   = "#FF9A3C"
+PURPLE   = "#9B51E0"
+ORANGE   = "#F2994A"
 SIDEBAR_W = 220
+
+THEMES = {
+    "dark": {
+        "BG": BG, "PANEL": PANEL, "CARD": CARD,
+        "ACCENT": ACCENT, "ACCENT2": ACCENT2,
+        "DANGER": DANGER, "WARNING": WARNING,
+        "SUCCESS": SUCCESS, "TEXT": TEXT,
+        "SUBTEXT": SUBTEXT, "WHITE": WHITE,
+        "PURPLE": PURPLE, "ORANGE": ORANGE,
+    },
+    "light": {
+        "BG": "#F4F7FB", "PANEL": "#E4ECF8", "CARD": "#FFFFFF",
+        "ACCENT": "#2D9CDB", "ACCENT2": "#56CCF2",
+        "DANGER": "#EB5757", "WARNING": "#F2C94C",
+        "SUCCESS": "#27AE60", "TEXT": "#2D3748",
+        "SUBTEXT": "#556B8A", "WHITE": "#FFFFFF",
+        "PURPLE": "#9B51E0", "ORANGE": "#F2994A",
+    },
+}
 
 # ─────────────────────────────────────────────
 #  LOGIN WINDOW
@@ -359,8 +379,7 @@ class LoginWindow(tk.Tk):
         # Header
         header = tk.Frame(self, bg=PANEL, pady=30)
         header.pack(fill="x")
-        tk.Label(header, text="🏥", font=("Segoe UI", 40), bg=PANEL, fg=ACCENT).pack()
-        tk.Label(header, text="MediCare HMS", font=("Segoe UI", 20, "bold"), bg=PANEL, fg=WHITE).pack()
+        tk.Label(header, text="MediCare HMS", font=("Segoe UI", 24, "bold"), bg=PANEL, fg=TEXT).pack()
         tk.Label(header, text="Hospital Management System", font=("Segoe UI", 10), bg=PANEL, fg=SUBTEXT).pack()
 
         # Form
@@ -368,14 +387,14 @@ class LoginWindow(tk.Tk):
         form.pack(fill="both", expand=True)
 
         tk.Label(form, text="Username", font=("Segoe UI", 10), bg=BG, fg=SUBTEXT).pack(anchor="w")
-        self.username_e = tk.Entry(form, font=("Segoe UI", 12), bg=CARD, fg=WHITE,
-                                    insertbackground=WHITE, relief="flat", bd=8)
+        self.username_e = tk.Entry(form, font=("Segoe UI", 12), bg=CARD, fg=TEXT,
+                                    insertbackground=TEXT, relief="flat", bd=8)
         self.username_e.pack(fill="x", pady=(4, 16))
         self.username_e.insert(0, "admin")
 
         tk.Label(form, text="Password", font=("Segoe UI", 10), bg=BG, fg=SUBTEXT).pack(anchor="w")
-        self.password_e = tk.Entry(form, font=("Segoe UI", 12), bg=CARD, fg=WHITE,
-                                    insertbackground=WHITE, relief="flat", bd=8, show="●")
+        self.password_e = tk.Entry(form, font=("Segoe UI", 12), bg=CARD, fg=TEXT,
+                                    insertbackground=TEXT, relief="flat", bd=8, show="●")
         self.password_e.pack(fill="x", pady=(4, 6))
         self.password_e.insert(0, "admin123")
 
@@ -420,6 +439,7 @@ class HospitalApp(tk.Tk):
     def __init__(self, user):
         super().__init__()
         self.current_user = user
+        self.theme_mode = "light"
         self.title(f"MediCare HMS — {user['full_name']} ({user['role']})")
         self.geometry("1366x800")
         self.minsize(1200, 700)
@@ -430,31 +450,35 @@ class HospitalApp(tk.Tk):
         self.show_page("dashboard")
 
     def _build_layout(self):
+        if hasattr(self, 'sidebar'):
+            self.sidebar.destroy()
+        if hasattr(self, 'content'):
+            self.content.destroy()
+        self.configure(bg=BG)
         self.sidebar = tk.Frame(self, bg=PANEL, width=SIDEBAR_W)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
         logo_frame = tk.Frame(self.sidebar, bg=PANEL, pady=16)
         logo_frame.pack(fill="x")
-        tk.Label(logo_frame, text="🏥", font=("Segoe UI", 26), bg=PANEL, fg=ACCENT).pack()
-        tk.Label(logo_frame, text="MediCare", font=("Segoe UI", 13, "bold"), bg=PANEL, fg=WHITE).pack()
-        tk.Label(logo_frame, text=f"{self.current_user['role']}", font=("Segoe UI", 8), bg=PANEL, fg=ACCENT).pack()
+        tk.Label(logo_frame, text="MediCare HMS", font=("Segoe UI", 16, "bold"), bg=PANEL, fg=TEXT).pack()
+        tk.Label(logo_frame, text=f"{self.current_user['role']}", font=("Segoe UI", 9), bg=PANEL, fg=SUBTEXT).pack()
 
         ttk.Separator(self.sidebar, orient="horizontal").pack(fill="x", padx=15, pady=4)
 
         self.nav_buttons = {}
         nav_items = [
-            ("dashboard",    "📊", "Dashboard"),
-            ("doctors",      "👨‍⚕️", "Doctors"),
-            ("patients",     "🧑", "Patients"),
-            ("appointments", "📅", "Appointments"),
-            ("cabins",       "🛏", "Cabins"),
-            ("billing",      "💳", "Billing"),
-            ("lab",          "🧪", "Lab Tests"),
-            ("pharmacy",     "💊", "Pharmacy"),
-            ("prescriptions","💉", "Prescriptions"),
-            ("history",      "📋", "Medical History"),
-            ("reports",      "📈", "Reports"),
+            ("dashboard",    "", "Dashboard"),
+            ("doctors",      "", "Doctors"),
+            ("patients",     "", "Patients"),
+            ("appointments", "", "Appointments"),
+            ("cabins",       "", "Cabins"),
+            ("billing",      "", "Billing"),
+            ("lab",          "", "Lab Tests"),
+            ("pharmacy",     "", "Pharmacy"),
+            ("prescriptions","", "Prescriptions"),
+            ("history",      "", "Medical History"),
+            ("reports",      "", "Reports"),
         ]
         if self.current_user["role"] == "Admin":
             nav_items.append(("users", "🔐", "User Management"))
@@ -486,14 +510,26 @@ class HospitalApp(tk.Tk):
                                         bg=PANEL, fg=WHITE)
         self.page_title_lbl.pack(side="left", padx=24, pady=12)
 
-        refresh_btn = tk.Button(topbar, text="🔄 Refresh", command=self._refresh_page,
+        theme_btn = tk.Button(topbar, text="Theme", command=self._toggle_theme,
+                               bg=ACCENT2, fg=BG, font=("Segoe UI", 10, "bold"), bd=0,
+                               relief="flat", padx=12, pady=8, cursor="hand2",
+                               activebackground=ACCENT, activeforeground=BG)
+        theme_btn.pack(side="right", padx=10, pady=8)
+
+        notif_btn = tk.Button(topbar, text="Alerts", command=self._show_reminders,
+                               bg=WARNING, fg=BG, font=("Segoe UI", 10, "bold"), bd=0,
+                               relief="flat", padx=12, pady=8, cursor="hand2",
+                               activebackground=ACCENT2, activeforeground=BG)
+        notif_btn.pack(side="right", padx=10, pady=8)
+
+        refresh_btn = tk.Button(topbar, text="Refresh", command=self._refresh_page,
                                  bg=ACCENT, fg=BG, font=("Segoe UI", 10, "bold"), bd=0,
                                  relief="flat", padx=12, pady=8, cursor="hand2",
                                  activebackground=ACCENT2, activeforeground=BG)
         refresh_btn.pack(side="right", padx=(0, 10), pady=8)
 
         now = datetime.datetime.now().strftime("%A, %d %B %Y")
-        tk.Label(topbar, text=f"📅 {now}", font=("Segoe UI", 9), bg=PANEL, fg=SUBTEXT).pack(side="right", padx=24)
+        tk.Label(topbar, text=now, font=("Segoe UI", 9), bg=PANEL, fg=SUBTEXT).pack(side="right", padx=24)
 
         self.page_area = tk.Frame(self.content, bg=BG)
         self.page_area.pack(fill="both", expand=True, padx=18, pady=16)
@@ -535,12 +571,12 @@ class HospitalApp(tk.Tk):
         self._current_page = key
         self._set_active_nav(key)
         titles = {
-            "dashboard": "📊  Dashboard", "doctors": "👨‍⚕️  Doctor Management",
-            "patients": "🧑  Patient Management", "appointments": "📅  Appointments",
-            "cabins": "🛏  Cabin Management", "billing": "💳  Billing",
-            "lab": "🧪  Lab Test Module", "pharmacy": "💊  Pharmacy & Medicines",
-            "prescriptions": "💉  Prescription Management", "history": "📋  Patient Medical History",
-            "reports": "📈  Reports & Analytics", "users": "🔐  User Management",
+            "dashboard": "Dashboard", "doctors": "Doctor Management",
+            "patients": "Patient Management", "appointments": "Appointments",
+            "cabins": "Cabin Management", "billing": "Billing",
+            "lab": "Lab Test Module", "pharmacy": "Pharmacy & Medicines",
+            "prescriptions": "Prescription Management", "history": "Patient Medical History",
+            "reports": "Reports & Analytics", "users": "User Management",
         }
         self.page_title_lbl.config(text=titles.get(key, key.title()))
         for w in self.page_area.winfo_children():
@@ -560,6 +596,55 @@ class HospitalApp(tk.Tk):
         if self._current_page:
             self.show_page(self._current_page)
 
+    def _toggle_theme(self):
+        global BG, PANEL, CARD, ACCENT, ACCENT2, DANGER, WARNING, SUCCESS, TEXT, SUBTEXT, WHITE, PURPLE, ORANGE
+        self.theme_mode = "light" if self.theme_mode == "dark" else "dark"
+        theme = THEMES[self.theme_mode]
+        BG = theme["BG"]; PANEL = theme["PANEL"]; CARD = theme["CARD"]
+        ACCENT = theme["ACCENT"]; ACCENT2 = theme["ACCENT2"]
+        DANGER = theme["DANGER"]; WARNING = theme["WARNING"]
+        SUCCESS = theme["SUCCESS"]; TEXT = theme["TEXT"]
+        SUBTEXT = theme["SUBTEXT"]; WHITE = theme["WHITE"]
+        PURPLE = theme["PURPLE"]; ORANGE = theme["ORANGE"]
+        self._build_layout()
+        self.show_page(self._current_page or "dashboard")
+
+    def _show_reminders(self):
+        today = datetime.date.today().isoformat()
+        conn = get_conn()
+        appts = conn.execute("""SELECT p.name,d.name,a.appointment_time,a.reason FROM appointments a
+                                JOIN patients p ON a.patient_id=p.id
+                                JOIN doctors d ON a.doctor_id=d.id
+                                WHERE a.appointment_date=? AND a.status='Scheduled' ORDER BY a.appointment_time""", (today,)).fetchall()
+        bills = conn.execute("""SELECT b.bill_number,p.name,b.total FROM bills b
+                                JOIN patients p ON b.patient_id=p.id
+                                WHERE b.payment_status='Pending' ORDER BY b.created_at""").fetchall()
+        conn.close()
+        win = tk.Toplevel(self)
+        win.title("Today's Reminders")
+        win.geometry("540x520")
+        win.configure(bg=PANEL)
+        tk.Label(win, text="Today's Reminders", font=("Segoe UI", 14, "bold"), bg=PANEL, fg=WHITE).pack(pady=12)
+        body = tk.Text(win, bg=CARD, fg=WHITE, font=("Segoe UI", 10), padx=14, pady=10, bd=0)
+        body.pack(fill="both", expand=True, padx=16, pady=8)
+        content = ""
+        if appts:
+            content += "Upcoming Appointments:\n"
+            for a in appts:
+                content += f" - {a[0]} with {a[1]} at {a[2]}: {a[3] or '-'}\n"
+        else:
+            content += "No scheduled appointments for today.\n"
+        content += "\nPending Bills:\n"
+        if bills:
+            for b in bills:
+                content += f" - {b[0]} ({b[1]}): ৳ {b[2]:,.2f}\n"
+        else:
+            content += "No pending bills.\n"
+        content += "\nUse this panel to review today’s reminders and follow up quickly."
+        body.insert("1.0", content)
+        body.config(state="disabled")
+        styled_button(win, "Close", win.destroy, bg=ACCENT, fg=BG).pack(pady=10)
+
     def _logout(self):
         if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
             self.destroy()
@@ -576,9 +661,9 @@ def card(parent, title, value, color, icon):
     tk.Label(f, text=title, font=("Segoe UI", 9), bg=CARD, fg=SUBTEXT).grid(row=1, column=1, sticky="w")
     return f
 
-def styled_button(parent, text, command, bg=ACCENT, fg=BG, **kw):
+def styled_button(parent, text, command, bg=ACCENT, fg=WHITE, **kw):
     return tk.Button(parent, text=text, command=command,
-                     bg=bg, fg=fg, activebackground=ACCENT2, activeforeground=BG,
+                     bg=bg, fg=fg, activebackground=ACCENT2, activeforeground=WHITE,
                      font=("Segoe UI", 10, "bold"), bd=0, relief="flat",
                      padx=12, pady=6, cursor="hand2", **kw)
 
@@ -587,7 +672,7 @@ def make_treeview(parent, columns, show="headings", height=12):
     style.theme_use("clam")
     style.configure("Custom.Treeview", background=CARD, foreground=TEXT,
                     fieldbackground=CARD, rowheight=28, font=("Segoe UI", 10))
-    style.configure("Custom.Treeview.Heading", background=PANEL, foreground=ACCENT,
+    style.configure("Custom.Treeview.Heading", background=PANEL, foreground=TEXT,
                     font=("Segoe UI", 10, "bold"), relief="flat")
     style.map("Custom.Treeview", background=[("selected", ACCENT)], foreground=[("selected", BG)])
     frame = tk.Frame(parent, bg=BG)
@@ -598,9 +683,36 @@ def make_treeview(parent, columns, show="headings", height=12):
     vsb.pack(side="right", fill="y")
     return frame, tree
 
+def export_table_to_pdf(filename, title, headers, rows, column_widths=None):
+    if not REPORTLAB_AVAILABLE:
+        messagebox.showwarning("PDF Export", "ReportLab is required to generate PDF files.")
+        return
+    if not rows:
+        messagebox.showinfo("PDF Export", "No data available to export.")
+        return
+    column_widths = column_widths or [None] * len(headers)
+    doc = SimpleDocTemplate(filename, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+    styles = getSampleStyleSheet(); elements = []
+    elements.append(Paragraph(title, ParagraphStyle('title', parent=styles['Heading1'], alignment=TA_CENTER, fontSize=16, textColor=colors.HexColor('#142850'))))
+    elements.append(Spacer(1, 6*mm))
+    data = [headers] + [[str(col) for col in row] for row in rows]
+    table = Table(data, colWidths=column_widths)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#142850')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONT', (0,0), (-1,0), 'Helvetica-Bold', 10),
+        ('FONT', (0,1), (-1,-1), 'Helvetica', 9),
+        ('GRID', (0,0), (-1,-1), 0.25, colors.lightgrey),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f4f7fb')]),
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(table)
+    doc.build(elements)
+    messagebox.showinfo("PDF Exported", f"PDF saved as:\n{os.path.abspath(filename)}")
+
 def labeled_entry(parent, label, row, col=0, width=22, colspan=1):
     tk.Label(parent, text=label, bg=PANEL, fg=SUBTEXT, font=("Segoe UI", 9)).grid(row=row, column=col, sticky="w", padx=8, pady=3)
-    e = tk.Entry(parent, width=width, bg=CARD, fg=WHITE, insertbackground=WHITE,
+    e = tk.Entry(parent, width=width, bg=CARD, fg=TEXT, insertbackground=TEXT,
                  relief="flat", font=("Segoe UI", 10), bd=4)
     e.grid(row=row+1, column=col, columnspan=colspan, sticky="ew", padx=8, pady=(0,5))
     return e
@@ -720,6 +832,7 @@ class DoctorsPage(tk.Frame):
         styled_button(toolbar, "+ Add Doctor", self._open_form).pack(side="left", padx=(0, 6))
         styled_button(toolbar, "✏ Edit", self._edit, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "📄 Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(self, bg=BG)
@@ -767,6 +880,11 @@ class DoctorsPage(tk.Frame):
         if messagebox.askyesno("Confirm", "Delete this doctor?"):
             conn = get_conn(); conn.execute("DELETE FROM doctors WHERE id=?", (self.selected_id,)); conn.commit(); conn.close()
             self._load()
+
+    def _export_pdf(self):
+        rows = []
+        conn = get_conn(); rows = conn.execute("SELECT id,name,specialization,phone,email,experience,status FROM doctors ORDER BY id ASC").fetchall(); conn.close()
+        export_table_to_pdf(f"Doctors_List_{datetime.date.today()}.pdf", "Doctors Directory", ["ID","Name","Specialization","Phone","Email","Experience","Status"], rows, [30*mm, 50*mm, 40*mm, 35*mm, 50*mm, 30*mm, 30*mm])
 
 
 class DoctorForm(tk.Toplevel):
@@ -823,6 +941,7 @@ class PatientsPage(tk.Frame):
         styled_button(toolbar, "✏ Edit", self._edit, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "📋 History", self._view_history, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "📄 Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(self, bg=BG); sf.pack(fill="x", pady=(0, 6))
@@ -865,6 +984,11 @@ class PatientsPage(tk.Frame):
         if not self.selected_id: messagebox.showwarning("Select", "Please select a patient first."); return
         if messagebox.askyesno("Confirm", "Delete this patient?"):
             conn = get_conn(); conn.execute("DELETE FROM patients WHERE id=?", (self.selected_id,)); conn.commit(); conn.close(); self._load()
+
+    def _export_pdf(self):
+        rows = []
+        conn = get_conn(); rows = conn.execute("SELECT id,patient_id,name,age,gender,phone,blood_group,disease,status FROM patients ORDER BY id ASC").fetchall(); conn.close()
+        export_table_to_pdf(f"Patients_List_{datetime.date.today()}.pdf", "Patients Directory", ["ID","Patient ID","Name","Age","Gender","Phone","Blood","Disease","Status"], rows, [25*mm, 35*mm, 40*mm, 20*mm, 25*mm, 30*mm, 30*mm, 35*mm, 25*mm])
 
     def _view_history(self):
         if not self.selected_id: messagebox.showwarning("Select", "Please select a patient first."); return
@@ -929,6 +1053,8 @@ class AppointmentsPage(tk.Frame):
         styled_button(toolbar, "+ New Appointment", self._open_form).pack(side="left", padx=(0, 6))
         styled_button(toolbar, "✏ Edit", self._edit, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "🔔 Reminders", self.app._show_reminders, bg=WARNING, fg=BG).pack(side="left", padx=4)
+        styled_button(toolbar, "📄 Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(self, bg=BG); sf.pack(fill="x", pady=(0, 6))
@@ -937,6 +1063,20 @@ class AppointmentsPage(tk.Frame):
         for opt in ["All", "Scheduled", "Completed", "Cancelled"]:
             tk.Radiobutton(sf, text=opt, variable=self.filter_var, value=opt, bg=BG, fg=TEXT, selectcolor=ACCENT,
                            activebackground=BG, font=("Segoe UI", 10), command=self._load).pack(side="left", padx=6)
+
+        self.selected_date = datetime.date.today()
+        self.cal_year = self.selected_date.year
+        self.cal_month = self.selected_date.month
+        self.calendar_frame = tk.Frame(self, bg=BG); self.calendar_frame.pack(fill="x", pady=(0, 8))
+        nav = tk.Frame(self.calendar_frame, bg=BG); nav.pack(fill="x")
+        tk.Button(nav, text="◀", command=self._prev_month, bg=CARD, fg=TEXT, bd=0, relief="flat", cursor="hand2").pack(side="left", padx=4)
+        self.month_label = tk.Label(nav, text=self.selected_date.strftime("%B %Y"), bg=BG, fg=WHITE, font=("Segoe UI", 10, "bold"))
+        self.month_label.pack(side="left", padx=8)
+        tk.Button(nav, text="▶", command=self._next_month, bg=CARD, fg=TEXT, bd=0, relief="flat", cursor="hand2").pack(side="left", padx=4)
+        tk.Button(nav, text="Today", command=self._select_today, bg=ACCENT, fg=BG, bd=0, relief="flat", cursor="hand2").pack(side="right", padx=4)
+        self.calendar_days = tk.Frame(self.calendar_frame, bg=BG)
+        self.calendar_days.pack(fill="x", pady=(6,0))
+        self._draw_month_calendar()
 
         cols = ("ID", "Patient", "Doctor", "Date", "Time", "Reason", "Status")
         tf, self.tree = make_treeview(self, cols, height=18)
@@ -951,8 +1091,18 @@ class AppointmentsPage(tk.Frame):
         conn = get_conn(); f = self.filter_var.get()
         q = """SELECT a.id, p.name, d.name, a.appointment_date, a.appointment_time, a.reason, a.status
                FROM appointments a JOIN patients p ON a.patient_id=p.id JOIN doctors d ON a.doctor_id=d.id"""
-        rows = conn.execute(q + (" WHERE a.status=? ORDER BY a.id DESC" if f != "All" else " ORDER BY a.id DESC"),
-                             (f,) if f != "All" else ()).fetchall()
+        where_clauses = []
+        params = []
+        if f != "All":
+            where_clauses.append("a.status=?")
+            params.append(f)
+        if self.selected_date:
+            where_clauses.append("a.appointment_date=?")
+            params.append(self.selected_date.isoformat())
+        if where_clauses:
+            q += " WHERE " + " AND ".join(where_clauses)
+        q += " ORDER BY a.appointment_time ASC"
+        rows = conn.execute(q, tuple(params)).fetchall()
         conn.close()
         for r in rows:
             tag = {"Scheduled": "sched", "Completed": "done", "Cancelled": "cancel"}.get(r[6], "")
@@ -976,6 +1126,79 @@ class AppointmentsPage(tk.Frame):
         if not self.selected_id: messagebox.showwarning("Select", "Select an appointment."); return
         if messagebox.askyesno("Confirm", "Delete this appointment?"):
             conn = get_conn(); conn.execute("DELETE FROM appointments WHERE id=?", (self.selected_id,)); conn.commit(); conn.close(); self._load()
+
+    def _export_pdf(self):
+        conn = get_conn(); f = self.filter_var.get()
+        q = """SELECT a.id,p.name,d.name,a.appointment_date,a.appointment_time,a.reason,a.status
+               FROM appointments a JOIN patients p ON a.patient_id=p.id JOIN doctors d ON a.doctor_id=d.id"""
+        where_clauses = []
+        params = []
+        if f != "All":
+            where_clauses.append("a.status=?"); params.append(f)
+        if self.selected_date:
+            where_clauses.append("a.appointment_date=?"); params.append(self.selected_date.isoformat())
+        if where_clauses:
+            q += " WHERE " + " AND ".join(where_clauses)
+        q += " ORDER BY a.appointment_time ASC"
+        rows = conn.execute(q, tuple(params)).fetchall(); conn.close()
+        export_table_to_pdf(f"Appointments_{datetime.date.today()}.pdf", "Appointment Schedule", ["ID","Patient","Doctor","Date","Time","Reason","Status"], rows, [20*mm, 35*mm, 35*mm, 25*mm, 20*mm, 45*mm, 25*mm])
+
+    def _draw_month_calendar(self):
+        for widget in self.calendar_days.winfo_children():
+            widget.destroy()
+        days_of_week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        for i, day in enumerate(days_of_week):
+            tk.Label(self.calendar_days, text=day, bg=BG, fg=SUBTEXT,
+                     font=("Segoe UI", 8, "bold"), width=10, padx=2, pady=2).grid(row=0, column=i, padx=1, pady=1)
+        first_weekday, total_days = calendar.monthrange(self.cal_year, self.cal_month)
+        row, col = 1, first_weekday
+        for day in range(1, total_days + 1):
+            date_obj = datetime.date(self.cal_year, self.cal_month, day)
+            selected = date_obj == self.selected_date
+            btn_bg = ACCENT if selected else CARD
+            btn_fg = BG if selected else TEXT
+            btn = tk.Button(self.calendar_days, text=str(day), bg=btn_bg, fg=btn_fg,
+                            relief="flat", bd=0, cursor="hand2",
+                            activebackground=ACCENT2, activeforeground=BG,
+                            command=lambda d=date_obj: self._select_date(d))
+            btn.grid(row=row, column=col, sticky="nsew", padx=1, pady=1)
+            self.calendar_days.grid_columnconfigure(col, weight=1)
+            col += 1
+            if col > 6:
+                col = 0
+                row += 1
+
+    def _select_date(self, date_obj):
+        self.selected_date = date_obj
+        self.month_label.config(text=self.selected_date.strftime("%B %Y"))
+        self._draw_month_calendar()
+        self._load()
+
+    def _prev_month(self):
+        if self.cal_month == 1:
+            self.cal_month = 12
+            self.cal_year -= 1
+        else:
+            self.cal_month -= 1
+        self.month_label.config(text=datetime.date(self.cal_year, self.cal_month, 1).strftime("%B %Y"))
+        self._draw_month_calendar()
+
+    def _next_month(self):
+        if self.cal_month == 12:
+            self.cal_month = 1
+            self.cal_year += 1
+        else:
+            self.cal_month += 1
+        self.month_label.config(text=datetime.date(self.cal_year, self.cal_month, 1).strftime("%B %Y"))
+        self._draw_month_calendar()
+
+    def _select_today(self):
+        self.selected_date = datetime.date.today()
+        self.cal_year = self.selected_date.year
+        self.cal_month = self.selected_date.month
+        self.month_label.config(text=self.selected_date.strftime("%B %Y"))
+        self._draw_month_calendar()
+        self._load()
 
 
 class AppointmentForm(tk.Toplevel):
@@ -1069,6 +1292,7 @@ class CabinsPage(tk.Frame):
         toolbar = tk.Frame(self, bg=BG); toolbar.pack(fill="x", pady=(0, 8))
         styled_button(toolbar, "✅ Admit Patient", self._admit).pack(side="left", padx=(0, 6))
         styled_button(toolbar, "🚪 Discharge", self._discharge, bg=WARNING, fg=BG).pack(side="left", padx=4)
+        styled_button(toolbar, "📄 Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(self, bg=BG); sf.pack(fill="x", pady=(0, 6))
@@ -1115,6 +1339,14 @@ class CabinsPage(tk.Frame):
             conn.execute("UPDATE cabins SET status='Available',patient_id=NULL,admitted_date=NULL WHERE id=?", (self.selected_id,)); conn.commit()
         conn.close(); self._load()
 
+    def _export_pdf(self):
+        conn = get_conn(); f = self.filter_var.get()
+        base = "SELECT c.id,c.cabin_number,c.cabin_type,c.floor,c.price_per_day,c.status,p.name,c.admitted_date FROM cabins c LEFT JOIN patients p ON c.patient_id=p.id"
+        rows = conn.execute(base + (" WHERE c.status=? ORDER BY c.id ASC" if f != "All" else " ORDER BY c.id ASC"), (f,) if f != "All" else ()).fetchall()
+        conn.close()
+        formatted = [[r[0], r[1], r[2], r[3], f"৳ {r[4]:,.2f}", r[5], r[6] or "-", r[7] or "-"] for r in rows]
+        export_table_to_pdf(f"Cabins_{datetime.date.today()}.pdf", "Cabin Availability", ["ID","Cabin","Type","Floor","Price","Status","Patient","Admitted"], formatted, [20*mm, 25*mm, 30*mm, 20*mm, 25*mm, 25*mm, 35*mm, 30*mm])
+
 
 class AdmitForm(tk.Toplevel):
     def __init__(self, parent, cabin_id, callback):
@@ -1159,8 +1391,8 @@ class BillingPage(tk.Frame):
         styled_button(toolbar, "✅ Mark Paid", self._mark_paid, bg=SUCCESS, fg=BG).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🖨 Print/PDF", self._print_bill, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
-        styled_button(toolbar, "� Export Report", self._export_billing_report, bg=ACCENT2, fg=BG).pack(side="left", padx=4)
-        styled_button(toolbar, "�🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
+        styled_button(toolbar, "📄 Export Report", self._export_billing_report, bg=ACCENT2, fg=BG).pack(side="left", padx=4)
+        styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(self, bg=BG); sf.pack(fill="x", pady=(0, 6))
         tk.Label(sf, text="Filter:", bg=BG, fg=SUBTEXT, font=("Segoe UI", 10)).pack(side="left")
@@ -1446,6 +1678,7 @@ class LabPage(tk.Frame):
         styled_button(toolbar, "+ New Order", lambda: LabOrderForm(self, None, self._load_orders)).pack(side="left", padx=(0, 6))
         styled_button(toolbar, "✏ Enter Result", self._enter_result, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete_order, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "📄 Export PDF", self._export_orders_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load_orders, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(parent, bg=BG); sf.pack(fill="x", pady=(0, 6))
@@ -1479,6 +1712,16 @@ class LabPage(tk.Frame):
             self.orders_tree.insert("", "end", values=rv, tags=(tag,))
         self.orders_tree.tag_configure("done", foreground=SUCCESS); self.orders_tree.tag_configure("pend", foreground=WARNING)
 
+    def _export_orders_pdf(self):
+        conn = get_conn(); f = self.order_filter.get()
+        q = """SELECT o.id,o.order_number,p.name,d.name,t.test_name,o.ordered_date,o.result_value,o.result_status
+               FROM lab_orders o JOIN patients p ON o.patient_id=p.id JOIN doctors d ON o.doctor_id=d.id
+               JOIN lab_tests t ON o.test_id=t.id"""
+        rows = conn.execute(q + (" WHERE o.result_status=? ORDER BY o.id DESC" if f != "All" else " ORDER BY o.id DESC"), (f,) if f != "All" else ()).fetchall()
+        conn.close()
+        formatted = [[r[0], r[1], r[2], r[3], r[4], r[5], r[6] or "-", r[7]] for r in rows]
+        export_table_to_pdf(f"Lab_Orders_{datetime.date.today()}.pdf", "Lab Orders", ["ID","Order No.","Patient","Doctor","Test","Date","Result","Status"], formatted, [20*mm, 30*mm, 35*mm, 30*mm, 40*mm, 25*mm, 30*mm, 25*mm])
+
     def _on_order_select(self, e):
         sel = self.orders_tree.selection()
         self.selected_id = self.orders_tree.item(sel[0])["values"][0] if sel else None
@@ -1497,6 +1740,7 @@ class LabPage(tk.Frame):
         styled_button(toolbar, "+ Add Test", lambda: LabTestForm(self, None, self._load_catalog)).pack(side="left", padx=(0, 6))
         styled_button(toolbar, "✏ Edit", self._edit_test, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete_test, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "📄 Export PDF", self._export_catalog_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load_catalog, bg=PANEL, fg=TEXT).pack(side="right")
 
         cols = ("ID", "Code", "Test Name", "Category", "Price (৳)", "Normal Range", "Unit", "Status")
@@ -1512,6 +1756,10 @@ class LabPage(tk.Frame):
         self.catalog_tree.delete(*self.catalog_tree.get_children())
         conn = get_conn(); rows = conn.execute("SELECT id,test_code,test_name,category,price,normal_range,unit,status FROM lab_tests").fetchall(); conn.close()
         for r in rows: self.catalog_tree.insert("", "end", values=r)
+
+    def _export_catalog_pdf(self):
+        conn = get_conn(); rows = conn.execute("SELECT id,test_code,test_name,category,price,normal_range,unit,status FROM lab_tests ORDER BY id ASC").fetchall(); conn.close()
+        export_table_to_pdf(f"Lab_Test_Catalog_{datetime.date.today()}.pdf", "Lab Test Catalog", ["ID","Code","Test Name","Category","Price","Normal Range","Unit","Status"], rows, [20*mm, 25*mm, 55*mm, 35*mm, 25*mm, 40*mm, 25*mm, 25*mm])
 
     def _on_catalog_select(self, e):
         sel = self.catalog_tree.selection()
@@ -1680,7 +1928,8 @@ class PharmacyPage(tk.Frame):
         styled_button(toolbar, "✏ Edit", self._edit_med, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "📦 Restock", self._restock, bg=SUCCESS, fg=BG).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete_med, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
-        styled_button(toolbar, "🔄 Refresh", self._load_inventory, bg=PANEL, fg=TEXT).pack(side="right")
+        styled_button(toolbar, "� Export PDF", self._export_inventory_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "�🔄 Refresh", self._load_inventory, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(parent, bg=BG); sf.pack(fill="x", pady=(0, 6))
         tk.Label(sf, text="Filter:", bg=BG, fg=SUBTEXT, font=("Segoe UI", 10)).pack(side="left")
@@ -1715,6 +1964,10 @@ class PharmacyPage(tk.Frame):
         self.inv_tree.tag_configure("out", foreground=DANGER)
         self.inv_tree.tag_configure("ok", foreground=SUCCESS)
 
+    def _export_inventory_pdf(self):
+        conn = get_conn(); rows = conn.execute("SELECT id,medicine_code,name,generic_name,category,unit,price,stock_quantity,reorder_level,expiry_date,status FROM medicines ORDER BY id ASC").fetchall(); conn.close()
+        export_table_to_pdf(f"Medicine_Inventory_{datetime.date.today()}.pdf", "Medicine Inventory", ["ID","Code","Name","Generic","Category","Unit","Price","Stock","Reorder","Expiry","Status"], rows, [20*mm, 25*mm, 45*mm, 35*mm, 35*mm, 25*mm, 25*mm, 25*mm, 25*mm, 35*mm, 25*mm])
+
     def _on_med_select(self, e):
         sel = self.inv_tree.selection()
         self.selected_med_id = self.inv_tree.item(sel[0])["values"][0] if sel else None
@@ -1736,7 +1989,8 @@ class PharmacyPage(tk.Frame):
     def _build_sales(self, parent):
         toolbar = tk.Frame(parent, bg=BG); toolbar.pack(fill="x", pady=(8, 6))
         styled_button(toolbar, "+ New Sale", lambda: SaleForm(self, self._load_sales)).pack(side="left", padx=(0, 6))
-        styled_button(toolbar, "🔄 Refresh", self._load_sales, bg=PANEL, fg=TEXT).pack(side="right")
+        styled_button(toolbar, "� Export PDF", self._export_sales_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "�🔄 Refresh", self._load_sales, bg=PANEL, fg=TEXT).pack(side="right")
 
         cols = ("ID", "Sale No.", "Patient", "Medicine", "Qty", "Unit Price ৳", "Total ৳", "Date")
         tf, self.sales_tree = make_treeview(parent, cols, height=14)
@@ -1759,6 +2013,11 @@ class PharmacyPage(tk.Frame):
         conn.close()
         for r in rows: self.sales_tree.insert("", "end", values=r)
         self.sales_summary_lbl.config(text=f"   💊 Total Pharmacy Revenue: ৳{total:,.2f}")
+
+    def _export_sales_pdf(self):
+        conn = get_conn(); rows = conn.execute("SELECT s.id,s.sale_number,p.name,m.name,s.quantity,s.unit_price,s.total_price,s.sale_date FROM medicine_sales s JOIN patients p ON s.patient_id=p.id JOIN medicines m ON s.medicine_id=m.id ORDER BY s.id ASC").fetchall(); conn.close()
+        formatted = [[r[0], r[1], r[2], r[3], r[4], f"৳ {r[5]:,.2f}", f"৳ {r[6]:,.2f}", r[7]] for r in rows]
+        export_table_to_pdf(f"Medicine_Sales_{datetime.date.today()}.pdf", "Medicine Sales", ["ID","Sale No.","Patient","Medicine","Qty","Unit Price","Total","Date"], formatted, [20*mm, 30*mm, 40*mm, 40*mm, 20*mm, 30*mm, 30*mm, 30*mm])
 
 
 class MedicineForm(tk.Toplevel):
@@ -1921,7 +2180,8 @@ class PrescriptionsPage(tk.Frame):
         styled_button(toolbar, "+ New Prescription", self._new).pack(side="left", padx=(0, 6))
         styled_button(toolbar, "👁 View Details", self._view, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🖨 Print", self._print, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
-        styled_button(toolbar, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "� Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "�🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
         styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         sf = tk.Frame(self, bg=BG); sf.pack(fill="x", pady=(0, 6))
@@ -1968,6 +2228,11 @@ class PrescriptionsPage(tk.Frame):
         if messagebox.askyesno("Confirm", "Delete this prescription?"):
             conn = get_conn(); conn.execute("DELETE FROM prescription_items WHERE prescription_id=?", (self.selected_id,))
             conn.execute("DELETE FROM prescriptions WHERE id=?", (self.selected_id,)); conn.commit(); conn.close(); self._load()
+
+    def _export_pdf(self):
+        conn = get_conn(); rows = conn.execute("SELECT rx.prescription_number,p.name,d.name,rx.diagnosis,rx.follow_up_date,rx.created_at FROM prescriptions rx JOIN patients p ON rx.patient_id=p.id JOIN doctors d ON rx.doctor_id=d.id ORDER BY rx.id ASC").fetchall(); conn.close()
+        formatted = [[r[0], r[1], r[2], r[3] or "-", r[4] or "-", r[5][:10] if r[5] else ""] for r in rows]
+        export_table_to_pdf(f"Prescriptions_{datetime.date.today()}.pdf", "Prescription Records", ["Rx No.","Patient","Doctor","Diagnosis","Follow-up","Date"], formatted, [30*mm, 35*mm, 35*mm, 45*mm, 30*mm, 30*mm])
 
 
 class PrescriptionForm(tk.Toplevel):
@@ -2182,7 +2447,8 @@ class MedicalHistoryPage(tk.Frame):
         self.patient_cb.pack(side="left", padx=12)
         self.patient_cb.bind("<<ComboboxSelected>>", lambda e: self._load())
         styled_button(top, "+ Add Record", self._add, bg=ACCENT).pack(side="left", padx=8)
-        styled_button(top, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
+        styled_button(top, "� Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
+        styled_button(top, "�🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
 
         cols = ("ID", "Date", "Visit Type", "Doctor", "Complaint", "Diagnosis", "Treatment")
         tf, self.tree = make_treeview(self, cols, height=14)
@@ -2230,6 +2496,16 @@ class MedicalHistoryPage(tk.Frame):
         if not self.selected_id: messagebox.showwarning("Select", "Select a record first."); return
         if messagebox.askyesno("Confirm", "Delete this history record?"):
             conn = get_conn(); conn.execute("DELETE FROM medical_history WHERE id=?", (self.selected_id,)); conn.commit(); conn.close(); self._load()
+
+    def _export_pdf(self):
+        key = self.patient_cb.get()
+        if not key: messagebox.showwarning("Select", "Please select a patient first."); return
+        pid = self.patient_map.get(key)
+        conn = get_conn(); rows = conn.execute("SELECT id,visit_date,visit_type,doctor_id,complaint,diagnosis,treatment FROM medical_history WHERE patient_id=? ORDER BY id ASC", (pid,)).fetchall();
+        doctor_cache = {d[0]: d[1] for d in conn.execute("SELECT id,name FROM doctors").fetchall()}
+        conn.close()
+        formatted = [[r[0], r[1], r[2], doctor_cache.get(r[3], "-"), r[4] or "-", r[5] or "-", r[6] or "-"] for r in rows]
+        export_table_to_pdf(f"Medical_History_{datetime.date.today()}.pdf", f"Medical History for {key}", ["ID","Date","Visit","Doctor","Complaint","Diagnosis","Treatment"], formatted, [20*mm, 25*mm, 25*mm, 35*mm, 40*mm, 40*mm, 40*mm])
 
 
 class MedicalHistoryForm(tk.Toplevel):
@@ -2463,7 +2739,8 @@ class UsersPage(tk.Frame):
         styled_button(toolbar, "✏ Edit", self._edit, bg=ACCENT2).pack(side="left", padx=4)
         styled_button(toolbar, "🔑 Reset Password", self._reset_pw, bg=WARNING, fg=BG).pack(side="left", padx=4)
         styled_button(toolbar, "🗑 Delete", self._delete, bg=DANGER, fg=WHITE).pack(side="left", padx=4)
-        styled_button(toolbar, "🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
+        styled_button(toolbar, "� Export PDF", self._export_pdf, bg=PURPLE, fg=WHITE).pack(side="left", padx=4)
+        styled_button(toolbar, "�🔄 Refresh", self._load, bg=PANEL, fg=TEXT).pack(side="right")
 
         cols = ("ID", "Username", "Full Name", "Role", "Email", "Status", "Created")
         tf, self.tree = make_treeview(self, cols, height=18)
@@ -2499,6 +2776,10 @@ class UsersPage(tk.Frame):
         if self.selected_id == self.app.current_user["id"]: messagebox.showerror("Error", "Cannot delete your own account."); return
         if messagebox.askyesno("Confirm", "Delete this user?"):
             conn = get_conn(); conn.execute("DELETE FROM users WHERE id=?", (self.selected_id,)); conn.commit(); conn.close(); self._load()
+
+    def _export_pdf(self):
+        conn = get_conn(); rows = conn.execute("SELECT id,username,full_name,role,email,status,created_at FROM users ORDER BY id ASC").fetchall(); conn.close()
+        export_table_to_pdf(f"Users_{datetime.date.today()}.pdf", "User Accounts", ["ID","Username","Full Name","Role","Email","Status","Created"], rows, [20*mm, 30*mm, 45*mm, 30*mm, 55*mm, 25*mm, 30*mm])
 
 
 class UserForm(tk.Toplevel):
